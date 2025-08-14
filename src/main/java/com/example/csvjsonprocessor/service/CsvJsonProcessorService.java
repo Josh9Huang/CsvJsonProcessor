@@ -107,7 +107,7 @@ public class CsvJsonProcessorService {
     }
     
     /**
-     * 提取data參數並移除result參數
+     * 提取data參數並從imageInfos中移除result參數
      * @param jsonStr 原始JSON字串
      * @return 處理後的JSON字串
      * @throws IOException JSON處理異常
@@ -119,20 +119,58 @@ public class CsvJsonProcessorService {
         if (rootNode.has("data")) {
             JsonNode dataNode = rootNode.get("data");
             
-            // 如果data是物件類型，移除其中的result參數
+            // 如果data是物件類型，處理其中的imageInfos
             if (dataNode.isObject()) {
                 ObjectNode dataObjectNode = (ObjectNode) dataNode;
-                dataObjectNode.remove("result");
+                
+                // 檢查是否有imageInfos節點
+                if (dataObjectNode.has("imageInfos")) {
+                    JsonNode imageInfosNode = dataObjectNode.get("imageInfos");
+                    
+                    // 如果imageInfos是物件，移除其中的result參數
+                    if (imageInfosNode.isObject()) {
+                        ObjectNode imageInfosObjectNode = (ObjectNode) imageInfosNode;
+                        imageInfosObjectNode.remove("result");
+                        logger.debug("已從imageInfos物件中移除result參數");
+                    }
+                    // 如果imageInfos是陣列，處理陣列中每個物件的result參數
+                    else if (imageInfosNode.isArray()) {
+                        for (JsonNode imageInfo : imageInfosNode) {
+                            if (imageInfo.isObject()) {
+                                ObjectNode imageInfoObjectNode = (ObjectNode) imageInfo;
+                                imageInfoObjectNode.remove("result");
+                            }
+                        }
+                        logger.debug("已從imageInfos陣列中的物件移除result參數");
+                    }
+                }
+                
                 return objectMapper.writeValueAsString(dataObjectNode);
             } else {
                 // 如果data不是物件，直接返回data的值
                 return objectMapper.writeValueAsString(dataNode);
             }
         } else {
-            // 如果沒有data節點，檢查根節點是否有result並移除
+            // 如果沒有data節點，檢查根節點是否有imageInfos並處理
             if (rootNode.isObject()) {
                 ObjectNode rootObjectNode = (ObjectNode) rootNode;
-                rootObjectNode.remove("result");
+                
+                if (rootObjectNode.has("imageInfos")) {
+                    JsonNode imageInfosNode = rootObjectNode.get("imageInfos");
+                    
+                    if (imageInfosNode.isObject()) {
+                        ObjectNode imageInfosObjectNode = (ObjectNode) imageInfosNode;
+                        imageInfosObjectNode.remove("result");
+                    } else if (imageInfosNode.isArray()) {
+                        for (JsonNode imageInfo : imageInfosNode) {
+                            if (imageInfo.isObject()) {
+                                ObjectNode imageInfoObjectNode = (ObjectNode) imageInfo;
+                                imageInfoObjectNode.remove("result");
+                            }
+                        }
+                    }
+                }
+                
                 return objectMapper.writeValueAsString(rootObjectNode);
             }
         }
